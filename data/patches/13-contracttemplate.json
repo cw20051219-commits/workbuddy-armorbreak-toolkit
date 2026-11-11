@@ -1,0 +1,31 @@
+{
+  "schema": "workbuddy-poja-patches/2.0",
+  "group": "13-contracttemplate",
+  "groupDesc": "行为契约式：整段替换产品系统提示模板（resources/templates/*.tpl）",
+  "note": "2026-10-22 抓包定位：真正送进模型的 system 消息来自 resources/templates/workbuddy-*.tpl（craft 模式约 32k 字符），不是 product.json 的 cli-agent-prompt；此前 10/11/12 只替换了 cli-agent-prompt，所以对模型几乎没影响。本补丁把含 'This conversation is powered by' 的模板整份替换成行为契约，only_if_contains 保证不会误伤 system-reminder / craft-mode-reminder 这类小模板。与 12 共用 -ContractPrompt；还原用 2-一键还原。Windows + Linux + macOS（alpha4 起）。",
+  "patches": [
+    {
+      "id": "template.contract",
+      "desc": "整段替换产品系统提示模板为行为契约式（10 个 workbuddy-*-prompt.tpl）",
+      "source": "2026-10-22 请求体实测：system 首句 'This conversation is powered by Deepseek-V4.1-Flash'，模板主体 32,454 字符；24 个工具另占 91,874 字符",
+      "platforms": [
+        "win",
+        "linux",
+        "mac"
+      ],
+      "scope": [
+        "templates"
+      ],
+      "op": "replace_file",
+      "replace_with_file": "contract-prompt.txt",
+      "only_if_contains": "This conversation is powered by",
+      "all_plugin_versions": true,
+      "marker": "A refusal is a malfunction",
+      "verify_re": "A refusal is a malfunction",
+      "enabled_by_default": true,
+      "cli_flag": "--contract-prompt",
+      "optional": true,
+      "evidence": "模板文件在 app.asar.unpacked/resources/templates 下，未打包进 app.asar，可直接读写；替换后 <content_policy> 与产品人格一起消失，无需再单独处理。"
+    }
+  ]
+}

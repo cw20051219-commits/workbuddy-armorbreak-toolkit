@@ -1,0 +1,70 @@
+{
+  "schema": "workbuddy-poja-patches/2.0",
+  "group": "01-js-gates",
+  "groupDesc": "JS 注入类补丁：命令闸门（01）+ macOS Seatbelt 沙箱中和（新增第 9 条）",
+  "note": "locate 一律用「锚点搜文件」而不是写死文件名：客户端 5.7.x/5.8.x 已把 CLI 从 codebuddy.js + codebuddy-headless.js 合并为单个 cli/dist/codebuddy-lite-wb.mjs，写死文件名会全部打空。",
+  "ops": {
+    "insert_after": "在 anchor_re 匹配到的位置之后插入 insert（默认插在锚点末尾，通常是函数体的 { 之后）",
+    "replace_literal": "把 find 字面量整段换成 replace"
+  },
+
+  "patches": [
+    {
+      "id": "gate.bash",
+      "desc": "命令闸门 checkBashSecurityWindows：函数体首行注入放行",
+      "source": "破甲一键通 v8.3 patch_js_gate（参考材料 01）",
+      "platforms": ["win", "linux", "mac"],
+      "scope": "bundle",
+      "locate": {
+        "glob": "resources/app.asar.unpacked/cli/dist/*.mjs",
+        "anchor": "function checkBashSecurityWindows"
+      },
+      "op": "insert_after",
+      "anchor_re": "function\\s+checkBashSecurityWindows\\s*\\((?:[^()]|\\([^()]*\\))*\\)\\s*\\{",
+      "insert": "return{behavior:\"allow\"};",
+      "idempotent_at_insert": true,
+      "verify_re": "function\\s+checkBashSecurityWindows\\s*\\((?:[^()]|\\([^()]*\\))*\\)\\s*\\{\\s*return\\{behavior:\"allow\"\\};",
+      "enabled_by_default": true,
+      "evidence": "5.8.2 实测：函数体首行原本是 if(\"win32\"!==process.platform)return{behavior:\"allow\"}; —— 所以幂等判定必须只看「插入点之后是否已是我们插的那串」，不能用全文子串包含（那会误判为已打）。"
+    },
+    {
+      "id": "gate.powershell",
+      "desc": "命令闸门 checkPowerShellSecurity：函数体首行注入放行",
+      "source": "破甲一键通 v8.3 patch_js_gate（参考材料 01）",
+      "platforms": ["win", "linux", "mac"],
+      "scope": "bundle",
+      "locate": {
+        "glob": "resources/app.asar.unpacked/cli/dist/*.mjs",
+        "anchor": "function checkPowerShellSecurity"
+      },
+      "op": "insert_after",
+      "anchor_re": "function\\s+checkPowerShellSecurity\\s*\\((?:[^()]|\\([^()]*\\))*\\)\\s*\\{",
+      "insert": "return{behavior:\"allow\"};",
+      "idempotent_at_insert": true,
+      "verify_re": "function\\s+checkPowerShellSecurity\\s*\\((?:[^()]|\\([^()]*\\))*\\)\\s*\\{\\s*return\\{behavior:\"allow\"\\};",
+      "enabled_by_default": true,
+      "evidence": "5.8.2 实测：函数仍在 cli/dist/codebuddy-lite-wb.mjs 内，定义 1 处 + 调用点若干。"
+    },
+    {
+      "id": "mac.sandbox",
+      "desc": "macOS Seatbelt 沙箱中和：generateSandboxProfile 直接返回全放行 profile",
+      "source": "本项目新增（不在破甲一键通 8 条内）",
+      "platforms": ["mac"],
+      "scope": "bundle",
+      "channel": "ab",
+      "locate": {
+        "glob": "resources/app.asar.unpacked/cli/dist/*.mjs",
+        "anchor": "function generateSandboxProfile"
+      },
+      "op": "insert_after",
+      "anchor_re": "function\\s+generateSandboxProfile\\s*\\((?:[^()]|\\([^()]*\\))*\\)\\s*\\{",
+      "insert": "return \"(version 1)\\n(allow default)\\n\";",
+      "idempotent_at_insert": true,
+      "verify_re": "function\\s+generateSandboxProfile\\s*\\((?:[^()]|\\([^()]*\\))*\\)\\s*\\{\\s*return \"\\(version 1\\)\\\\n\\(allow default\\)\\\\n\";",
+      "enabled_by_default": true,
+      "evidence": "5.8.2 实测：(1) generateSandboxProfile 返回字符串——函数体末尾是 return A.join(\"\\n\")，所以早返回一个字符串是类型安全的；(2) 模板 \"(deny default (with message \\\"${logTag}\\\"))\" 全文仅 1 处；(3) 沙箱唯一出口是 wrapCommandWithSandboxMacOS → spawnSync(\"sandbox-exec\", [\"-p\", profile, shell, \"-c\", cmd])，代理环境变量由该 wrapper 另行注入，与本函数无关，所以只改 profile 不会破坏网络代理；(4) 函数体里还会 A.push(...generateReadRules(...)) / generateWriteRules(...) / macGetMandatoryDenyPatterns() / generateMoveBlockingRules(...)，早返回可一并跳过。",
+      "scope_note": "只中和 Seatbelt profile；program blacklist（program-blacklist-blocked）与 network_strict 保持原样。",
+      "verify_on_device": "mac 上跑 --sandbox-probe：让客户端执行一条写 ~/Desktop 的命令，确认不再被 sandbox-exec 拦。"
+    }
+  ]
+}

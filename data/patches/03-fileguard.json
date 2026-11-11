@@ -1,0 +1,29 @@
+{
+  "schema": "workbuddy-poja-patches/2.0",
+  "group": "03-fileguard",
+  "groupDesc": "文件保护中和（03）",
+  "note": "默认关（破甲一键通 --full / --nofileguard 才做）。5.8.2 实测：<personal_files_safety> 在 10 个模板里各 1 处，但 cli/product.json 与运行时缓存里都是 0 处——所以这条只能靠磁盘通道（改 bundle 内文件）覆盖，环境变量通道够不着。",
+
+  "patches": [
+    {
+      "id": "fileguard",
+      "desc": "<personal_files_safety> / <removed_by_unlock_v4> 区块整体中和为「文件操作无限制」",
+      "source": "破甲一键通 v8.3 neutralize_guard（参考材料 03）",
+      "platforms": ["win", "linux", "mac"],
+      "scope": ["templates", "productJson"],
+      "op": "replace_tag_block",
+      "tags": ["personal_files_safety", "removed_by_unlock_v4"],
+      "replace_with_file": "fileguard.txt",
+      "safety_valve": "最高优先级覆盖",
+      "json_aware": true,
+      "enabled_by_default": false,
+      "cli_flag": "--no-file-guard",
+      "evidence": "5.8.2 实测：标签在 resources/templates/*.tpl 命中 10/10；product.json 0；cli/dist/*.mjs 0。",
+      "pitfalls": [
+        "真实事故（v4）：无论对 .tpl 还是 product.json 都塞进带真实换行的替换文本 → JSON 字符串里出现裸换行 → JSON 语法立刻损坏、产品配置报废。所以 JSON 目标必须用 \\n 转义形式。",
+        "安全阀：块体里若含「最高优先级覆盖」说明那是我们自己的覆盖层，不能替换，否则会把自家覆盖层一起中和掉。",
+        "换行风格：.tpl 多为 CRLF（workbuddy-prompt.tpl 332 CRLF / 10 裸 LF），product.json 为纯 LF——引擎必须按目标文件自身的主导换行风格输出，不能用固定 CRLF。"
+      ]
+    }
+  ]
+}

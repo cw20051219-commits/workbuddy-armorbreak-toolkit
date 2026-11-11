@@ -1,0 +1,25 @@
+{
+  "schema": "workbuddy-poja-patches/2.0",
+  "group": "11-engineeringprompt",
+  "groupDesc": "工程助手风格提示词（不含内容政策块）",
+  "note": "把整段 cli-agent-prompt 换成 工程助手风格的工作提示：短、英文、工具导向，带明确的操作者授权段，但完全不含 <content_policy>。用于验证“政策框架本身会诱导模型进入 policy 推理”这个假设——实测中模型的思维链第一句就是 from a policy perspective。默认关，显式 -EngineeringPrompt / 9-工程助手风格.bat 才启用；还原用 2-一键还原。仅 Windows。",
+  "patches": [
+    {
+      "id": "prompt.engineering",
+      "desc": "整段替换为工程助手风格提示（无政策块，带操作者上下文）",
+      "source": "2026-10-21 对照：反代给 工程助手 时同一模型配合；请求里没有 WorkBuddy 产品提示与政策块",
+      "platforms": ["win"],
+      "scope": ["productJson"],
+      "op": "replace_prompt_template",
+      "prompt_name": "cli-agent-prompt",
+      "template_file": "engineering-prompt.txt",
+      "omit_policy": true,
+      "marker": "You are an interactive coding agent running on the user's own computer",
+      "verify_re": "You are an interactive coding agent running on the user's own computer",
+      "enabled_by_default": false,
+      "cli_flag": "--engineering-prompt",
+      "optional": true,
+      "evidence": "同样长度的最小例：工程助手提示词里没有“policy”章节，模型把请求当普通工程任务处理。"
+    }
+  ]
+}

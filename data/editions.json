@@ -1,0 +1,251 @@
+{
+  "schema": "workbuddy-poja-editions/2.0",
+  "toolVersion": "3.6.2",
+  "toolName": "WorkBuddy破甲工具包",
+  "note": "国内版 / 国际版 的唯一版本表。三个平台实现（win/linux/mac）都只读这一份，不再在代码里散落硬编码。",
+  "paths": {
+    "templates": "resources/app.asar.unpacked/resources/templates",
+    "productJson": "resources/app.asar.unpacked/cli/product.json",
+    "cliDistGlob": "resources/app.asar.unpacked/cli/dist/*.mjs",
+    "plugins": "resources/app.asar.unpacked/resources/plugins",
+    "dataCacheGlob": "cache/acc-product-config*.json"
+  },
+  "envNames": [
+    "ACC_PRODUCT_CONFIG_PATH",
+    "ACC_PRODUCT_CONFIG_V3",
+    "ACC_PRODUCT_CONFIG_V2",
+    "ACC_PRODUCT_CONFIG"
+  ],
+  "family": {
+    "comment": "本工具族（含 v1.x）曾经写过的路径与标记；识别这些值 = 可安全接管/清理。",
+    "patchRootNames": [
+      "WorkBuddyPatch",
+      "WorkBuddyAIPatch"
+    ],
+    "envFileNames": [
+      "wb-env-config.json",
+      "wb-ai-env-config.json"
+    ],
+    "cloudmemMark": "workbuddy-poja cloudmem v",
+    "cloudmemVersion": 3,
+    "otherToolCloudmemMarks": [
+      "pojia-yijiantong cloudmem v"
+    ],
+    "otherToolCloudmemMinVersion": 7
+  },
+  "editions": {
+    "cn": {
+      "key": "cn",
+      "displayName": "WorkBuddy（国内版）",
+      "shortName": "国内版",
+      "endpointHint": "workbuddy.cn",
+      "dataFolder": ".workbuddy",
+      "dataDirEnvOverride": "WORKBUDDY_CONFIG_DIR",
+      "patchRootName": "WorkBuddyPatch",
+      "envFileName": "wb-env-config.json",
+      "logFileName": "install.log",
+      "snapshotSuffix": "",
+      "shellMarker": "wb-policy-tool",
+      "envConfFile": "90-workbuddy-policy.conf",
+      "writeTestPrefix": ".wb-write-test-",
+      "guardTaskTag": "WorkBuddyUnlock",
+      "macLaunchLabel": "com.workbuddy-unlock",
+      "winExeNames": [
+        "WorkBuddy.exe",
+        "CodeBuddy.exe"
+      ],
+      "winProcPattern": "^(?i)(WorkBuddy(?!AI)|CodeBuddy)(\\.exe)?$",
+      "winProcNameFilter": "^(?i)(WorkBuddy(?!AI)|CodeBuddy)$",
+      "pgrepPattern": "(^|/)(workbuddy|codebuddy)(\\.sh)?$",
+      "linuxCommands": [
+        "workbuddy",
+        "workbuddy.sh"
+      ],
+      "linuxInstallDirs": [
+        "/opt/apps/workbuddy",
+        "/opt/WorkBuddy",
+        "/opt/workbuddy",
+        "/usr/share/workbuddy",
+        "/usr/lib/workbuddy",
+        "/usr/local/lib/workbuddy",
+        "$HOME/.local/share/WorkBuddy",
+        "$HOME/.local/share/workbuddy",
+        "$HOME/Applications/WorkBuddy",
+        "/snap/workbuddy/current"
+      ],
+      "linuxTmpMountGlobs": [
+        "/tmp/.mount_*WorkBuddy*",
+        "/tmp/.mount_*workbuddy*"
+      ],
+      "winInstallDirNames": [
+        "WorkBuddy",
+        "CodeBuddy",
+        "workbuddy",
+        "codebuddy"
+      ],
+      "winNestedDirNames": [
+        "WorkBuddy",
+        "CodeBuddy",
+        "workbuddy",
+        "codebuddy"
+      ],
+      "winPfSubdirPattern": "(?i)work|buddy|code",
+      "winShortcutPattern": "(?i)WorkBuddy|CodeBuddy|工作",
+      "registryDisplayNameInclude": "(?i)WorkBuddy|CodeBuddy",
+      "registryDisplayNameExclude": "(?i)\\bAI\\b|WorkBuddyAI|workbuddy-ai",
+      "registryUninstallInclude": "(?i)WorkBuddy\\.exe|CodeBuddy\\.exe",
+      "macAppNames": [
+        "WorkBuddy.app"
+      ],
+      "macBundleIds": [
+        "com.tencent.workbuddy.mac"
+      ],
+      "macExeRel": "Contents/MacOS/WorkBuddy",
+      "identity": {
+        "mode": "none-of",
+        "comment": "国内版 = 命中 intl 判据中任何一条的都不算；全部不命中才算国内版。",
+        "checks": [
+          {
+            "field": "dataFolderName",
+            "regex": "^\\.workbuddy-ai$"
+          },
+          {
+            "field": "applicationName",
+            "regex": "(?i)^workbuddy[-_]?ai$"
+          },
+          {
+            "field": "productName",
+            "regex": "(?i)WorkBuddy\\s*AI"
+          },
+          {
+            "field": "endpoint",
+            "regex": "(?i)workbuddy\\.ai"
+          }
+        ],
+        "fallbackExe": "WorkBuddy.exe"
+      },
+      "foreignPathMarkers": [
+        "workbuddyaipatch",
+        ".workbuddy-ai/",
+        "programs/workbuddyai",
+        "programs/workbuddy ai",
+        "/opt/workbuddyai",
+        "/opt/workbuddy-ai",
+        "/opt/apps/workbuddy-ai",
+        "workbuddy ai.app",
+        "workbuddyai.app",
+        "wb-ai-env-config.json",
+        "wb-policy-tool-ai",
+        "90-workbuddy-ai-policy.conf"
+      ],
+      "_foreignMatchHint": "比较前：路径转小写、反斜杠换成正斜杠、再补一个尾部分隔符。'.workbuddy' 是 '.workbuddy-ai' 的子串，所以标记必须带分隔符边界，且先判 foreign 再判自己。"
+    },
+    "intl": {
+      "key": "intl",
+      "displayName": "WorkBuddy AI（国际版）",
+      "shortName": "国际版",
+      "endpointHint": "workbuddy.ai",
+      "dataFolder": ".workbuddy-ai",
+      "dataDirEnvOverride": "WORKBUDDY_CONFIG_DIR",
+      "patchRootName": "WorkBuddyAIPatch",
+      "envFileName": "wb-ai-env-config.json",
+      "logFileName": "install.log",
+      "snapshotSuffix": "-ai",
+      "shellMarker": "wb-policy-tool-ai",
+      "envConfFile": "90-workbuddy-ai-policy.conf",
+      "writeTestPrefix": ".wb-ai-write-test-",
+      "guardTaskTag": "WorkBuddyAIUnlock",
+      "macLaunchLabel": "com.workbuddy-ai-unlock",
+      "winExeNames": [
+        "WorkBuddyAI.exe",
+        "workbuddy-ai.exe"
+      ],
+      "winProcPattern": "^(?i)(WorkBuddyAI|workbuddy-ai)(\\.exe)?$",
+      "winProcNameFilter": "^(?i)(WorkBuddyAI|workbuddy-ai)$",
+      "pgrepPattern": "(^|/)(workbuddy-ai|WorkBuddyAI)(\\.sh)?$",
+      "linuxCommands": [
+        "workbuddy-ai",
+        "WorkBuddyAI",
+        "workbuddy-ai.sh"
+      ],
+      "linuxInstallDirs": [
+        "/opt/WorkBuddyAI",
+        "/opt/workbuddy-ai",
+        "/opt/apps/workbuddy-ai",
+        "/usr/share/workbuddy-ai",
+        "/usr/lib/workbuddy-ai",
+        "/usr/local/lib/workbuddy-ai",
+        "$HOME/.local/share/WorkBuddyAI",
+        "$HOME/.local/share/workbuddy-ai",
+        "$HOME/Applications/WorkBuddy AI"
+      ],
+      "linuxTmpMountGlobs": [
+        "/tmp/.mount_*WorkBuddyAI*",
+        "/tmp/.mount_*workbuddy-ai*"
+      ],
+      "winInstallDirNames": [
+        "WorkBuddyAI",
+        "WorkBuddy AI",
+        "workbuddy-ai"
+      ],
+      "winNestedDirNames": [
+        "WorkBuddyAI",
+        "WorkBuddy AI",
+        "workbuddy-ai",
+        "app-5",
+        "current"
+      ],
+      "winPfSubdirPattern": "(?i)workbuddy|buddy",
+      "winShortcutPattern": "(?i)WorkBuddy\\s*AI|workbuddy-ai",
+      "registryDisplayNameInclude": "(?i)WorkBuddy\\s*AI|WorkBuddyAI",
+      "registryDisplayNameExclude": "",
+      "registryUninstallInclude": "(?i)WorkBuddyAI|workbuddy-ai",
+      "macAppNames": [
+        "WorkBuddy AI.app",
+        "WorkBuddyAI.app"
+      ],
+      "macBundleIds": [
+        "com.tencent.workbuddy-ai.mac",
+        "com.tencent.workbuddyai.mac"
+      ],
+      "macExeRel": "Contents/MacOS/WorkBuddy AI",
+      "identity": {
+        "mode": "any-of",
+        "comment": "国际版 = 命中任意一条即认定。",
+        "checks": [
+          {
+            "field": "dataFolderName",
+            "regex": "^\\.workbuddy-ai$"
+          },
+          {
+            "field": "applicationName",
+            "regex": "(?i)^workbuddy[-_]?ai$"
+          },
+          {
+            "field": "productName",
+            "regex": "(?i)WorkBuddy\\s*AI"
+          },
+          {
+            "field": "endpoint",
+            "regex": "(?i)workbuddy\\.ai"
+          }
+        ],
+        "fallbackExe": "WorkBuddyAI.exe"
+      },
+      "foreignPathMarkers": [
+        "workbuddypatch",
+        ".workbuddy/",
+        "programs/workbuddy/",
+        "opt/apps/workbuddy/",
+        "opt/workbuddy/",
+        "opt/WorkBuddy/",
+        "share/workbuddy/",
+        "lib/workbuddy/",
+        "workbuddy.app/",
+        "wb-env-config.json",
+        "90-workbuddy-policy.conf"
+      ],
+      "_foreignMatchHint": "比较前：路径转小写、反斜杠换成正斜杠、再补一个尾部分隔符。'.workbuddy/' 与 'programs/workbuddy/' 都带边界，因此不会被 '.workbuddy-ai/'、'programs/workbuddyai/' 命中（国际版自己的路径）。"
+    }
+  }
+}

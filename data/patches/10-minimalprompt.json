@@ -1,0 +1,28 @@
+{
+  "schema": "workbuddy-poja-patches/2.0",
+  "group": "10-minimalprompt",
+  "groupDesc": "精简系统提示词（整段替换 cli-agent-prompt）",
+  "note": "WorkBuddy 的 cli-agent-prompt 约 2.6 万字符，其中 ~1.8 万是 agent 工作规范与人设；模型看到的主体是它，而不是我们的授权段（请求实测 prompt_tokens ≈ 36k，模型仍按产品人格拒绝）。本补丁把整段模板替换成一份约 1.6k 字符的工作提示，并在末尾保留 <content_policy> 块（正文按当前档位运行时注入），用于验证“去掉产品人格后模型是否照做”。默认关，显式 -MinimalPrompt / 10-精简提示词.bat 才启用；还原必须用 2-一键还原（1-一键破甲 不会恢复原模板）。仅 Windows。",
+  "patches": [
+    {
+      "id": "prompt.minimal",
+      "desc": "用精简工作提示整段替换 cli-agent-prompt（去产品人格与 1.8 万规范）",
+      "source": "2026-10-21 实测：同一模型在 工程助手 配合、在 WorkBuddy 拒绝；请求 prompt_tokens≈36k",
+      "platforms": [
+        "win"
+      ],
+      "scope": [
+        "productJson"
+      ],
+      "op": "replace_prompt_template",
+      "prompt_name": "cli-agent-prompt",
+      "template_file": "minimal-prompt.txt",
+      "verify_re": "You are a local assistant running on the user's own computer",
+      "enabled_by_default": false,
+      "cli_flag": "--minimal-prompt",
+      "optional": true,
+      "evidence": "product.json 的 prompts 数组里 name 在 template 之前；模板是单个 JSON 字符串，按转义规则定位结尾即可整段替换，文件其余字节不动。",
+      "marker": "You are a local assistant running on the user's own computer"
+    }
+  ]
+}

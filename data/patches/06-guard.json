@@ -1,0 +1,68 @@
+{
+  "schema": "workbuddy-poja-patches/2.0",
+  "group": "06-guard",
+  "groupDesc": "守护任务 / 抗升级（07）",
+  "note": "显式入口，不随一键破甲默认安装。三平台各自实现。共同硬要求：(1) 静默模式必须幂等短路——先体检，全部目标已是最新则不建快照直接退出，否则每 30 分钟一份快照，几周撑爆磁盘；(2) 装完必须做结构校验，不能只看「任务存在」。",
+
+  "interval_minutes": 30,
+
+  "win": {
+    "tasks": [
+      { "name": "WorkBuddyUnlock_Hourly", "schedule": ["/SC", "MINUTE", "/MO", "30"], "need_admin": false },
+      { "name": "WorkBuddyUnlock_Logon", "schedule": ["/SC", "ONLOGON"], "need_admin": true }
+    ],
+    "command": "\"<powershell.exe>\" -NoProfile -ExecutionPolicy Bypass -File \"<install.ps1>\" -Silent -NoRestart -NoDialog",
+    "comment_command": "整条命令行必须作为 /TR 的单个 argv 元素传给 schtasks，让 Windows 自己拆成 <Command> + <Arguments>。",
+    "verify": {
+      "exists": "schtasks /Query /TN <name>",
+      "wellformed": "schtasks /Query /TN <name> /XML → 必须有 <Arguments> 且其中含脚本名；只出现 <Command> 且里面塞了整条命令行 = 坏（Windows 会当成「一个带空格的程序名」，Last Result = -2147020576，一次都跑不成）",
+      "last_result": "schtasks /Query /TN <name> /V /FO LIST → 267009=正在运行 267011=还没跑过 0=成功；中英系统字段名都要认（Last Result / 上次运行结果）"
+    },
+    "remove": "schtasks /Delete /TN <name> /F，删后复查存在性",
+    "pitfalls": [
+      "非管理员下创建 ONLOGON 任务会 Access denied——要明确提示用管理员重跑，不能静默失败。",
+      "只查「任务存在」会重演 -2147020576 假成功：工具报「守护任务正常」而任务一次没跑成。"
+    ]
+  },
+
+  "linux": {
+    "systemd_user": {
+      "unit_dir": "$HOME/.config/systemd/user",
+      "service": "workbuddy-unlock.service",
+      "timer": "workbuddy-unlock.timer",
+      "on_unit_active_sec": "30min",
+      "exec_start": "/bin/bash <wb-patch.sh> --quiet"
+    },
+    "cron_fallback": {
+      "marker_begin": "# >>> wb-unlock-guard >>>",
+      "marker_end": "# <<< wb-unlock-guard <<<",
+      "line": "*/30 * * * * /bin/bash <wb-patch.sh> --quiet >/dev/null 2>&1"
+    },
+    "detect": "command -v systemctl && systemctl --user show-environment >/dev/null 2>&1 —— 可用则用 timer，否则退回 cron",
+    "verify": {
+      "timer": "systemctl --user is-enabled <timer> / is-active <timer>；首次手动 start 后看 systemctl --user status 的退出码",
+      "cron": "crontab -l 里能搜到标记块"
+    }
+  },
+
+  "mac": {
+    "agents": [
+      { "label": "com.workbuddy-unlock", "start_interval": 1800, "run_at_load": true }
+    ],
+    "plist_dir": "$HOME/Library/LaunchAgents",
+    "plist": {
+      "ProgramArguments": ["/bin/bash", "<wb-patch.sh>", "--quiet"],
+      "StandardOutPath": "<state>/guard.log",
+      "StandardErrorPath": "<state>/guard.err"
+    },
+    "verify": {
+      "lint": "plutil -lint <plist> —— 必须 OK",
+      "loaded": "launchctl print gui/$UID/<label> → 看 state 与 last exit code；launchctl list | grep <label> 取 PID/状态/退出码"
+    },
+    "remove": "launchctl bootout gui/$UID/<label>（旧的 launchctl unload 作为兜底），然后删 plist",
+    "pitfalls": [
+      "GUI 应用不读 ~/.zprofile，环境变量必须走 launchctl —— 守护脚本自己不能依赖 shell 里 export 的变量。",
+      "LaunchAgent 的 ProgramArguments 必须写成数组，不能把整条命令行塞进一整个字符串（与 Windows 的 <Command>/<Arguments> 是同一类坑）。"
+    ]
+  }
+}

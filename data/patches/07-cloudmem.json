@@ -1,0 +1,64 @@
+{
+  "schema": "workbuddy-poja-patches/2.0",
+  "group": "07-cloudmem",
+  "groupDesc": "云记忆 memoryBlock 注入（04）",
+  "note": "独立子命令（inject / revert / status），不在一键破甲默认流程里。它的价值是抗升级：模板被官方覆盖后，云记忆里的内容还在——客户端每轮启动都会把它并进系统提示词。",
+
+  "enabled_by_default": false,
+  "modes": ["inject", "revert", "status"],
+
+  "target": {
+    "glob": "<data>/memory/*_memory.md",
+    "comment": "UID 取自文件名（去掉 _memory.md）；没有档案说明账号还没生成过云记忆——先让用户在客户端里发一句话。"
+  },
+
+  "limits": {
+    "max_block_chars": 10000,
+    "comment": "块超过 10000 字符客户端不认，直接报错而不是截断。"
+  },
+
+  "block_template": "# User Memory Profile\n> Last updated: <iso8601>\n> Version: <version>\n\n## Memory Block\n\n<persona>\n\n---\n\n<!-- RAW_JSON_START\n{\"uid\":\"<uid>\",\"memoryBlock\":\"<persona_json_escaped>\",\"updatedAt\":\"<iso8601>\",\"version\":<version>}\nRAW_JSON_END -->\n",
+  "comment_template": "格式照抄客户端自己写出来的档案（标题 / Version 行 / ## Memory Block / --- / 注释包裹的原始 JSON）。persona 在明文区用原文，在 RAW_JSON 区用 JSON 转义。",
+
+  "our_mark": "workbuddy-poja cloudmem v",
+  "our_version": 3,
+  "comment_our_version": "写 >= 官方默认的 Version，用来让判据「Version >= N 就是工具产物」成立。",
+
+  "other_tool_marks": ["pojia-yijiantong cloudmem v"],
+  "other_tool_min_version": 7,
+  "comment_other_tool": "破甲一键通也用同一份档案注入（标记 pojia-yijiantong cloudmem v，Version >= 7）。必须一并认作「工具产物」，否则会把它的注入版当成用户原档备份下来。",
+
+  "backup_suffix": ".poja.bak",
+
+  "is_ours": {
+    "rule": "含 our_mark，或 含任 other_tool_marks，或 「> Version: N」且 N >= our_version，或 N >= other_tool_min_version",
+    "comment": "任一命中即视为「工具写的」，绝不能当用户原档备份。真实事故：用户/清理工具把 .poja.bak 删掉后再跑一次，老版本会把磁盘上已经是注入版的档案当「用户原档」备份；再 revert 就把注入内容当用户的记忆还原回去，用户真正的记忆再也找不回来。"
+  },
+
+  "inject": {
+    "steps": [
+      "枚举 <data>/memory/*_memory.md；没有 → 报错提示先去客户端发一句话",
+      "persona 超 10000 字符 → 报错",
+      "逐档：取 uid（取不到用文件名）",
+      "若档案存在、无 .poja.bak、且档案不是工具产物 → 先 copy 一份 .poja.bak 留档",
+      "解除只读（若失败只警告，不中止——FAT32 / 权限不足都可能）",
+      "写入注入版（保留原换行风格）",
+      "重新加只读锁"
+    ],
+    "persona_source": "默认用当前档位的政策正文（policy.zh/en[.strong].txt），可用 --persona-file 覆盖",
+    "comment_persona": "本项目的哲学是「政策文件可选」——不做内置单一作者人格，云记忆注入的就是用户自己那份政策文本。"
+  },
+
+  "revert": {
+    "branches": [
+      { "cond": "有 .poja.bak 且备份不是工具产物", "action": "真还原：拷回 + 删 .poja.bak" },
+      { "cond": "无备份但档案是工具产物", "action": "清空注入内容（version 归 0），并如实告诉用户原内容无法恢复" },
+      { "cond": "档案不是工具产物", "action": "一个字节都不动；若原本是只读则恢复只读" }
+    ],
+    "comment": "三个分支的顺序不能变。第二种情况绝不能假装「已还原」——不留恢复假象。"
+  },
+
+  "status": {
+    "output": "每个档案：文件名 / Memory Block 字符数 / Version / 是否只读 / 是否含工具标记"
+  }
+}

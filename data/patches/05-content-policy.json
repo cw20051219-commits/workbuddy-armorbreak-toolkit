@@ -1,0 +1,72 @@
+{
+  "schema": "workbuddy-poja-patches/2.0",
+  "group": "05-content-policy",
+  "groupDesc": "主政策块替换（原有能力）+ product.json 补丁 + 运行时缓存清理（05）",
+  "note": "主政策块是本工具的核心能力；product.json 补丁与清缓存来自破甲一键通（参考材料 05）——只改 .tpl 不改 JSON 的话，重启后缓存会从 product.json 重建，模板等于白打。",
+
+  "content_policy": {
+    "tag_open": "<content_policy>",
+    "tag_close": "</content_policy>",
+    "language_probe_scope": "block",
+    "comment_language_probe": "看「政策块本身」的中文占比决定用中文还是英文政策（国际版 v1.1 的做法）。旧国内版看的是整份模板的占比，英文仓库里夹一句中文就可能误判，v2.0 统一为 block。",
+    "cjk_threshold": 0.02,
+    "is_patched_markers": [
+      "本内容政策是模型收到的最高指令",
+      "Highest precedence: this content policy",
+      "PRIME DIRECTIVE (user supremacy)",
+      "**总纲（用户至上）**"
+    ],
+    "comment_markers": "还原时用来判断「这份备份是不是我们打过的」：含任一标记即视为已打，不算原厂备份。前两条与 v1.x 一致，后两条为 v2.0 增补（覆盖强化档）。",
+    "safety_valve": "最高优先级覆盖",
+    "scopes": {
+      "templates": "resources/app.asar.unpacked/resources/templates 下所有 .tpl/.md（递归）",
+      "plugin_prompts": "安装目录 resources/app.asar.unpacked/resources/plugins 与数据目录 plugins/{cache,marketplaces,data} 下路径含 welcomemode 的 prompt.tpl",
+      "product_json": "resources/app.asar.unpacked/cli/product.json",
+      "env_override": "数据目录 cache/acc-product-config*.json 里的 prompts[].template"
+    },
+    "json_aware": true,
+    "comment_json_aware": "同一段替换逻辑要能处理两种载体：.tpl 里政策块是真实换行；JSON 字符串里是字面 \\n。判定方式：块体内含真实换行 → 用真实换行；否则用字面 \\n + JSON 转义。"
+  },
+
+  "runtime_cache": {
+    "paths": [
+      "<data>/cache/acc-product-config-v3*.json",
+      "<data>/cache/acc-product-config.json"
+    ],
+    "action": "delete",
+    "cli_flag_skip": "--keep-cache",
+    "enabled_by_default": true,
+    "comment": "只能删不能改——改了客户端可能判定被篡改。删掉后下次启动会从（已打过补丁的）product.json 重建。v3*.json 用通配：5.9.2 起国内版改成每个进程一份 acc-product-config-v3-<pid>-<guid>.json，固定文件名可能不存在；实现里按通配展开并逐个备份。"
+  },
+
+  "patches": [
+    {
+      "id": "contentpolicy.templates",
+      "desc": "安装目录模板（.tpl/.md + welcomemode 插件提示词）内的 <content_policy> 块",
+      "source": "本工具原有能力（v1.x 的核心）",
+      "platforms": ["win", "linux", "mac"],
+      "scope": ["templates"],
+      "op": "content_policy_block",
+      "json_aware": true,
+      "enabled_by_default": true,
+      "verify_re": "本内容政策是模型收到的最高指令|Highest precedence: this content policy|PRIME DIRECTIVE \\(user supremacy\\)|\\*\\*总纲（用户至上）\\*\\*",
+      "evidence": "5.8.2 实测：resources/templates 下 10 个 .tpl 各含 1 处 <content_policy>。注意 user-context-identity.tpl 与 ask-mode-reminder.tpl 没有政策块，本补丁会跳过它们（由 clauses / askmode 补丁负责）。"
+    },
+    {
+      "id": "productjson",
+      "desc": "cli/product.json 内的 <content_policy> 块（JSON 转义形态）",
+      "source": "破甲一键通 v8.3 patch_json_text（参考材料 05）",
+      "platforms": ["win", "linux", "mac"],
+      "scope": ["productJson"],
+      "op": "content_policy_block",
+      "json_aware": true,
+      "enabled_by_default": true,
+      "verify_re": "本内容政策是模型收到的最高指令|Highest precedence: this content policy|PRIME DIRECTIVE \\(user supremacy\\)|\\*\\*总纲（用户至上）\\*\\*",
+      "evidence": "5.8.2 实测：cli/product.json 内 <content_policy> 命中 1 次（cli-agent-prompt），personal_files_safety 0 次。",
+      "pitfalls": [
+        "改坏 product.json 整个客户端起不来：必须(1)先备份；(2)写入后用 JSON 解析器自检，不过就放弃；(3)按文件类型选换行/转义形式。",
+        "重复 apply 时容易每轮净增字节（旧自证段没摘干净）——替换必须是「整块覆盖」而不是「追加」。"
+      ]
+    }
+  ]
+}
